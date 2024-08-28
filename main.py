@@ -2,6 +2,7 @@ import csv
 import os
 import glob
 from bs4 import BeautifulSoup
+from collections import Counter
 
 # Przetwarzanie pojedynczego pliku HTML
 def process_html_file(file_path):
@@ -44,14 +45,28 @@ def process_all_html_files_in_folder(folder_path):
 def save_to_csv(all_data, output_file):
     # Nadzbiór nazw wszystkich parametrów
     all_keys = set()
+    # Liczenie częstotliwości występowania każdego klucza w danych by ustalić logiczną kolejność
+    key_counter = Counter()
+    # Priorytetowe klucze w ustalonej kolejności i dodatkowo w osobnym pliku
+    key_priority = ['Model smartfona:', 'Seria smartfona:', 'cena', 'link', 'Pamięć wbudowana [GB]:', 'Pamięć RAM:', 'Model Procesora:', 'Pojemność akumulatora [mAh]:', 'Aparat:', 'Wyjście słuchawkowe:', 'Ładowanie bezprzewodowe:', 'Odświeżanie ekranu [Hz]:', 'Wyświetlacz:']
+    
     for data in all_data:
-        all_keys.update(data.keys())
-        
+        key_counter.update(data.keys())
+    non_priority_keys = [key for key, _ in key_counter.most_common() if key not in key_priority]
+    all_keys = key_priority + non_priority_keys
+    
     with open(output_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(all_keys) 
         for data in all_data:
             row = [data.get(key, '') for key in all_keys]  # Jeśli brakuje klucza, wstaw pustą wartość
+            writer.writerow(row)
+    
+    with open('priority.csv', mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(key_priority) 
+        for data in all_data:
+            row = [data.get(key, '') for key in key_priority]  # Jeśli brakuje klucza, wstaw pustą wartość
             writer.writerow(row)
 
 
@@ -61,5 +76,4 @@ output_file = 'output.csv'
 all_data = process_all_html_files_in_folder(folder_path)
 save_to_csv(all_data, output_file)
 
-print(f"Dane zostały zapisane do pliku {output_file}.")
-
+print(f"Dane zostały zapisane do pliku {output_file} oraz priority.csv")
